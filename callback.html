@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Signing in…</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #0d1117;
+      color: #e6edf3;
+    }
+    .card {
+      text-align: center;
+      padding: 2.5rem 3.5rem;
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+      max-width: 480px;
+      width: 90%;
+    }
+    .logo { height: 48px; width: auto; margin-bottom: 1.25rem; }
+    .spinner {
+      width: 40px; height: 40px;
+      border: 3px solid #30363d;
+      border-top-color: #FFB600;
+      border-radius: 50%;
+      animation: spin 0.75s linear infinite;
+      margin: 0 auto 1.25rem;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    p  { margin: 0.4rem 0; font-size: 0.9rem; color: #8b949e; }
+    .err { color: #ff7b72; }
+    a  { color: #58a6ff; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .redirect-uri {
+      font-size: 0.7rem;
+      color: #484f58;
+      word-break: break-all;
+      margin-top: 0.75rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="card" id="card">
+    <img class="logo" src="logo.png" alt="Hartsfield-Jackson Atlanta International Airport" />
+    <div class="spinner"></div>
+    <p>Completing sign-in&hellip;</p>
+  </div>
+
+  <script src="config.js"></script>
+  <script>
+    const APS_TOKEN_URL = 'https://developer.api.autodesk.com/authentication/v2/token';
+
+    function getCallbackUrl() {
+      return location.href.split('?')[0];
+    }
+
+    async function run() {
+      const params   = new URLSearchParams(location.search);
+      const code     = params.get('code');
+      const error    = params.get('error');
+      const card     = document.getElementById('card');
+      const logoHtml = card.querySelector('.logo').outerHTML;
+
+      if (error) {
+        card.innerHTML = `${logoHtml}
+          <p class="err"><strong>Sign-in failed</strong></p>
+          <p class="err">${params.get('error_description') || error}</p>
+          <p style="margin-top:1rem"><a href="./">Return to app</a></p>`;
+        return;
+      }
+
+      if (!code) {
+        card.innerHTML = `${logoHtml}
+          <p class="err">No authorization code received.</p>
+          <p style="margin-top:1rem"><a href="./">Return to app</a></p>`;
+        return;
+      }
+
+      // Show the redirect_uri in use — useful for verifying APS portal settings
+      card.innerHTML += `<p class="redirect-uri">redirect_uri: ${getCallbackUrl()}</p>`;
+
+      try {
+        const verifier = sessionStorage.getItem('pkce_verifier');
+        if (!verifier) throw new Error('PKCE verifier missing — please try signing in again.');
+
+        const body = new URLSearchParams({
+          grant_type:    'authorization_code',
+          code,
+          redirect_uri:  getCallbackUrl(),
+          client_id:     window.APS_CLIENT_ID,
+          code_verifier: verifier
+        });
+
+        if (window.APS_CLIENT_SECRET) {
+          body.set('client_secret', window.APS_CLIENT_SECRET);
+        }
+
+        const res = await fetch(APS_TOKEN_URL, {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body
+        });
+
+        if (!res.ok) {
+          const txt = await res.text();
+          throw new Error(`Token exchange failed (${res.status}): ${txt}`);
+        }
+
+        const tokens = await res.json();
+        sessionStorage.removeItem('pkce_verifier');
+        sessionStorage.setItem('aps_token',     tokens.access_token);
+        sessionStorage.setItem('aps_token_exp', Date.now() + tokens.expires_in * 1000);
+        if (tokens.refresh_token) {
+          sessionStorage.setItem('aps_refresh', tokens.refresh_token);
+        }
+
+        location.replace('./');
+
+      } catch (err) {
+        card.innerHTML = `${logoHtml}
+          <p class="err"><strong>Token exchange failed</strong></p>
+          <p class="err" style="word-break:break-all;font-size:0.8rem">${err.message}</p>
+          <p class="redirect-uri">redirect_uri: ${getCallbackUrl()}</p>
+          <p style="margin-top:1rem"><a href="./">Return to app</a></p>`;
+      }
+    }
+
+    run();
+  </script>
+</body>
+</html>

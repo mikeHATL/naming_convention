@@ -13,9 +13,10 @@ const App = (() => {
   // ─── Config (from config.js) ──────────────────────────────────────────────
   function getCallbackUrl() {
     if (window.APS_CALLBACK_URL) return window.APS_CALLBACK_URL;
-    // Auto-detect: strip query/hash, ensure trailing slash
-    const path = window.location.pathname.replace(/\/$/, '') + '/';
-    return window.location.origin + path;
+    // Build URL to callback.html (same directory as index.html)
+    const base = location.href.split('?')[0];
+    const dir  = base.endsWith('/') ? base : base.substring(0, base.lastIndexOf('/') + 1);
+    return dir + 'callback.html';
   }
 
   // ─── State ────────────────────────────────────────────────────────────────
@@ -93,6 +94,7 @@ const App = (() => {
         code,
         redirect_uri:  getCallbackUrl(),
         client_id:     window.APS_CLIENT_ID,
+        client_secret: window.APS_CLIENT_SECRET || '',
         code_verifier: verifier
       })
     });
@@ -154,28 +156,6 @@ const App = (() => {
 
   // ─── Init ─────────────────────────────────────────────────────────────────
   async function init() {
-    // Check for OAuth callback
-    const params = new URLSearchParams(window.location.search);
-    const code  = params.get('code');
-    const error = params.get('error');
-
-    if (error) {
-      window.history.replaceState({}, '', getCallbackUrl());
-      showLogin(`Sign-in error: ${decodeURIComponent(error)}`);
-      return;
-    }
-
-    if (code) {
-      showLoading('Completing sign-in…');
-      try {
-        await handleCallback(code);
-        await showApp();
-      } catch (err) {
-        showLogin(err.message);
-      }
-      return;
-    }
-
     if (isAuthenticated()) {
       await showApp();
     } else {
