@@ -1,0 +1,26 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Inject APS Client ID
+        env:
+          APS_CLIENT_ID: ${{ secrets.APS_CLIENT_ID }}
+        run: |
+          sed -i "s|YOUR_CLIENT_ID_PLACEHOLDER|$APS_CLIENT_ID|g" config.js
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: .
