@@ -13,7 +13,8 @@
 //
 // ═══════════════════════════════════════════════════════════════════
 
-window.APS_CLIENT_ID = 'YOUR_CLIENT_ID_PLACEHOLDER';
+window.APS_CLIENT_ID     = 'YOUR_CLIENT_ID_PLACEHOLDER';
+window.APS_CLIENT_SECRET = 'YOUR_CLIENT_SECRET_PLACEHOLDER';
 
 // Override the callback URL only if auto-detection fails.
 // Must end with "callback.html" and match exactly what is registered in your APS app.

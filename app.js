@@ -94,6 +94,7 @@ const App = (() => {
         code,
         redirect_uri:  getCallbackUrl(),
         client_id:     window.APS_CLIENT_ID,
+        client_secret: window.APS_CLIENT_SECRET || '',
         code_verifier: verifier
       })
     });

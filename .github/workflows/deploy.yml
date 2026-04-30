@@ -13,11 +13,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Inject APS Client ID
+      - name: Inject APS credentials
         env:
           APS_CLIENT_ID: ${{ secrets.APS_CLIENT_ID }}
+          APS_CLIENT_SECRET: ${{ secrets.APS_CLIENT_SECRET }}
         run: |
           sed -i "s|YOUR_CLIENT_ID_PLACEHOLDER|$APS_CLIENT_ID|g" config.js
+          sed -i "s|YOUR_CLIENT_SECRET_PLACEHOLDER|$APS_CLIENT_SECRET|g" config.js
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
