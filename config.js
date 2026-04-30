@@ -13,7 +13,8 @@
 //
 // ═══════════════════════════════════════════════════════════════════
 
-window.APS_CLIENT_ID = 'pC2CdXV09qwiLNPwCBgd9uVfGX9YnQU0gH56VbGgOJglKup2';
+window.APS_CLIENT_ID     = 'pC2CdXV09qwiLNPwCBgd9uVfGX9YnQU0gH56VbGgOJglKup2';
+window.APS_CLIENT_SECRET = 'Maq1UCReYfKhOVS1D62S4FSyG6jv7tacGmDf7UFfaDWYhOxafl5VEZgxFwmfQiSQ';
 
 // Override the callback URL only if auto-detection doesn't work for you:
 // window.APS_CALLBACK_URL = 'https://your-username.github.io/your-repo/';
