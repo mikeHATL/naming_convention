@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ATL BIM Naming Convention Checker</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ═══════════════════════════════ HEADER ═══════════════════════════════ -->
+  <header class="app-header">
+    <div class="header-left">
+      <img class="atl-logo" src="logo.png" alt="Hartsfield-Jackson Atlanta International Airport" />
+      <div class="header-title">
+        <span class="header-name">BIM Naming Convention Checker</span>
+        <span class="header-sub">Standard DC-GN-001 · Hartsfield-Jackson Atlanta International Airport</span>
+      </div>
+    </div>
+    <div class="header-right">
+      <div id="auth-area">
+        <button class="btn btn-primary" onclick="App.login()">
+          <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+          Sign in with Autodesk
+        </button>
+      </div>
+      <div id="user-area" class="hidden">
+        <span class="user-badge">
+          <svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+          Connected
+        </span>
+        <button class="btn btn-ghost" onclick="App.logout()">Sign out</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ═══════════════════════════════ LOGIN SCREEN ══════════════════════════ -->
+  <div id="login-screen" class="login-screen">
+    <div class="login-card">
+      <img class="login-logo" src="logo-atl.png" alt="ATL" />
+      <h1>BIM Naming Convention Checker</h1>
+      <p class="login-desc">
+        Validate your ACC / BIM 360 project files against<br>
+        ATL BIM Standard <strong>DC-GN-001</strong>.
+      </p>
+      <button class="btn btn-primary btn-lg" onclick="App.login()">
+        <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/></svg>
+        Sign in with Autodesk
+      </button>
+      <p id="login-error" class="login-error hidden"></p>
+      <p class="login-hint">
+        You need an Autodesk account with access to ACC or BIM 360.
+      </p>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════ MAIN APP ══════════════════════════════ -->
+  <div id="app-screen" class="app-screen hidden">
+
+    <!-- ── Left: Project Browser ─────────────────────────────────────────── -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <span class="sidebar-title">Project Browser</span>
+        <button class="icon-btn" id="collapse-sidebar" title="Collapse sidebar">
+          <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6z"/></svg>
+        </button>
+      </div>
+
+      <div class="sidebar-selectors">
+        <label class="select-label">Hub</label>
+        <select id="hub-select" class="select-input" onchange="App.onHubChange(this.value)">
+          <option value="">Loading hubs…</option>
+        </select>
+
+        <label class="select-label">Project</label>
+        <select id="project-select" class="select-input" disabled onchange="App.onProjectChange(this.value)">
+          <option value="">Select a hub first</option>
+        </select>
+      </div>
+
+      <div class="folder-tree-header">
+        <span class="sidebar-title">Folders</span>
+        <span id="folder-status" class="folder-status"></span>
+      </div>
+
+      <div id="folder-tree" class="folder-tree">
+        <p class="tree-hint">Select a hub and project to browse folders.</p>
+      </div>
+
+      <div class="sidebar-footer">
+        <button id="scan-btn" class="btn btn-primary btn-full" disabled onclick="App.startScan()">
+          <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+          Analyze Selected Folder
+        </button>
+        <button id="stop-btn" class="btn btn-danger btn-full hidden" onclick="App.stopScan()">
+          <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M6 6h12v12H6z"/></svg>
+          Stop Scan
+        </button>
+        <div id="scan-progress" class="scan-progress hidden">
+          <div class="progress-bar-track">
+            <div id="progress-bar" class="progress-bar-fill"></div>
+          </div>
+          <span id="progress-label" class="progress-label">Scanning…</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ── Right: Dashboard + File List ──────────────────────────────────── -->
+    <main class="main-panel">
+
+      <!-- Dashboard -->
+      <section class="dashboard" id="dashboard">
+        <div class="dashboard-empty" id="dashboard-empty">
+          <svg viewBox="0 0 24 24" width="48" height="48" opacity="0.3"><path fill="currentColor" d="M19 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2zm-7 3l5 5h-4v4h-2v-4H7l5-5z"/></svg>
+          <p>Select a folder and click <strong>Analyze</strong> to check naming conventions.</p>
+        </div>
+
+        <div class="dashboard-content hidden" id="dashboard-content">
+          <!-- Stat Cards -->
+          <div class="stat-cards">
+            <div class="stat-card stat-total">
+              <div class="stat-value" id="stat-total">0</div>
+              <div class="stat-label">Total Files</div>
+            </div>
+            <div class="stat-card stat-compliant">
+              <div class="stat-value" id="stat-compliant">0</div>
+              <div class="stat-label">Compliant</div>
+              <div class="stat-pct" id="stat-compliant-pct">—</div>
+            </div>
+            <div class="stat-card stat-noncompliant">
+              <div class="stat-value" id="stat-noncompliant">0</div>
+              <div class="stat-label">Non-Compliant</div>
+              <div class="stat-pct" id="stat-noncompliant-pct">—</div>
+            </div>
+            <div class="stat-card stat-issues">
+              <div class="stat-value" id="stat-issue-count">0</div>
+              <div class="stat-label">Total Issues</div>
+            </div>
+          </div>
+
+          <!-- Compliance Ring + Breakdown -->
+          <div class="dashboard-row">
+            <div class="compliance-ring-wrap">
+              <svg class="compliance-ring" viewBox="0 0 120 120">
+                <circle cx="60" cy="60" r="50" class="ring-bg"/>
+                <circle cx="60" cy="60" r="50" class="ring-fill" id="ring-fill"
+                        style="stroke-dasharray: 0 314"/>
+              </svg>
+              <div class="ring-center">
+                <span class="ring-pct" id="ring-pct">0%</span>
+                <span class="ring-label">Compliant</span>
+              </div>
+            </div>
+
+            <div class="breakdown-panels">
+              <div class="breakdown-section">
+                <h4 class="breakdown-title">By Category</h4>
+                <div id="category-bars" class="bar-list"></div>
+              </div>
+              <div class="breakdown-section">
+                <h4 class="breakdown-title">Common Issues</h4>
+                <div id="issue-list" class="issue-list"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Filters -->
+          <div class="filter-bar">
+            <span class="filter-label">Filter:</span>
+            <button class="filter-chip active" data-filter="all" onclick="App.setFilter('all', this)">All</button>
+            <button class="filter-chip" data-filter="compliant" onclick="App.setFilter('compliant', this)">Compliant</button>
+            <button class="filter-chip" data-filter="noncompliant" onclick="App.setFilter('noncompliant', this)">Issues</button>
+            <span class="filter-sep">|</span>
+            <span class="filter-label">Type:</span>
+            <button class="filter-chip" data-filter="cat:Main Model" onclick="App.setFilter('cat:Main Model', this)">Main Model</button>
+            <button class="filter-chip" data-filter="cat:Site Model" onclick="App.setFilter('cat:Site Model', this)">Site Model</button>
+            <button class="filter-chip" data-filter="cat:3D Asset Model" onclick="App.setFilter('cat:3D Asset Model', this)">Asset Model</button>
+            <button class="filter-chip" data-filter="cat:Revit Family" onclick="App.setFilter('cat:Revit Family', this)">Family</button>
+            <button class="filter-chip" data-filter="cat:Annotation Family" onclick="App.setFilter('cat:Annotation Family', this)">Annotation</button>
+            <button class="filter-chip" data-filter="cat:Document" onclick="App.setFilter('cat:Document', this)">Document</button>
+            <span class="filter-sep">|</span>
+            <input type="text" id="search-input" class="search-input" placeholder="Search filename…"
+                   oninput="App.onSearch(this.value)"/>
+          </div>
+        </div>
+      </section>
+
+      <!-- File List -->
+      <section class="file-list-section">
+        <div class="file-list-header">
+          <span class="list-title">Files</span>
+          <span id="file-count-label" class="file-count-label"></span>
+          <button class="btn btn-ghost btn-sm" id="export-btn" onclick="App.exportCSV()" style="display:none">
+            <svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+            Export CSV
+          </button>
+        </div>
+
+        <div class="table-wrap" id="table-wrap">
+          <div class="list-empty" id="list-empty">
+            <p>No files to display yet.</p>
+          </div>
+          <table class="file-table hidden" id="file-table">
+            <thead>
+              <tr>
+                <th class="col-name" onclick="App.sortBy('name')">
+                  File Name <span class="sort-icon" data-col="name">↕</span>
+                </th>
+                <th class="col-ext" onclick="App.sortBy('ext')">
+                  Ext <span class="sort-icon" data-col="ext">↕</span>
+                </th>
+                <th class="col-cat" onclick="App.sortBy('category')">
+                  Category <span class="sort-icon" data-col="category">↕</span>
+                </th>
+                <th class="col-status" onclick="App.sortBy('compliant')">
+                  Status <span class="sort-icon" data-col="compliant">↕</span>
+                </th>
+                <th class="col-issues">Issues</th>
+              </tr>
+            </thead>
+            <tbody id="file-tbody"></tbody>
+          </table>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- ─── Modal ──────────────────────────────────────────────────────────── -->
+  <div id="modal-overlay" class="modal-overlay hidden" onclick="App.closeModal()">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <span id="modal-title" class="modal-title"></span>
+        <button class="icon-btn" onclick="App.closeModal()">✕</button>
+      </div>
+      <div class="modal-body" id="modal-body"></div>
+    </div>
+  </div>
+
+  <!-- Load order matters: config → naming rules → app logic -->
+  <script src="config.js"></script>
+  <script src="naming.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
